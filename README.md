@@ -8,6 +8,18 @@ React 前台 + Cloudflare **Workers**（Hono）+ **D1**（结构化数据）+ �
 
 ---
 
+
+## 本机真正一键部署 (D1 + R2 + deploy)
+
+网页 Deploy Button 仍需手动创建 D1/R2。本机推荐：
+
+```bash
+npm run install:all
+npx wrangler login
+npm run cf:one-click
+```
+
+脚本会自动：创建 D1/R2、写入 database_id、迁移、设置 JWT_SECRET、deploy。
 ## 一键部署到 Cloudflare
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/liu-jun-xi/shop-platform)

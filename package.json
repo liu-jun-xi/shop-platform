@@ -10,6 +10,7 @@
     "dev:legacy": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "cf:dev": "npm run build && wrangler dev",
     "cf:deploy": "npm run build && wrangler deploy",
+    "cf:one-click": "node scripts/cf-one-click.mjs",
     "db:migrate:local": "wrangler d1 migrations apply shop-db --local",
     "db:migrate": "wrangler d1 migrations apply shop-db --remote",
     "setup:cf": "npm run install:all && npm run build && npm run db:migrate:local"
