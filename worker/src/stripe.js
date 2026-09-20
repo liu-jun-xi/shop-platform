@@ -30,7 +30,6 @@ export async function createCheckoutSession(env, {
   const stripe = getStripe(env);
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
-    // Follow Dashboard-enabled methods (card, Alipay, …). Do not hardcode card-only.
     payment_method_types: ['card', 'alipay'],
     line_items: lineItems,
     success_url: successUrl,

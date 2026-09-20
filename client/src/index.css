@@ -75,8 +75,7 @@ a:hover { text-decoration: underline; }
 .header {
   background: var(--card);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 100;
   box-shadow: var(--shadow);
   padding: 0 var(--page-padding-x);
