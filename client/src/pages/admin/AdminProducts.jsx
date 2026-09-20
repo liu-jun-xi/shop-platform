@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { applyWatermarkToFiles } from '../../utils/watermark';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -9,6 +10,7 @@ export default function AdminProducts() {
   const [form, setForm] = useState({ name: '', description: '', price: '', cost_price: '0', stock: '99', product_code: '', custom_code: '', add_watermark: false, images: [], existingImages: [] });
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const load = (query = search) => api.products.adminList({ q: query }).then(setProducts).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -44,30 +46,48 @@ export default function AdminProducts() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     const customCode = form.custom_code.trim();
-    const fd = new FormData();
-    fd.append('name', form.name);
-    fd.append('description', form.description);
-    fd.append('price', form.price);
-    fd.append('stock', form.stock);
-    fd.append('cost_price', form.cost_price);
-    fd.append('custom_code', customCode);
-    fd.append('add_watermark', form.add_watermark ? '1' : '0');
-    if (editId) {
-      fd.append('keep_images', JSON.stringify(form.existingImages));
-    }
-    form.images.forEach(file => fd.append('images', file));
     try {
+      let uploadFiles = form.images || [];
+      if (form.add_watermark && uploadFiles.length) {
+        const site = await api.site.adminGet().catch(() => api.site.get());
+        uploadFiles = await applyWatermarkToFiles(uploadFiles, {
+          watermark_text: site.watermark_text,
+          watermark_opacity: site.watermark_opacity,
+          watermark_spacing: site.watermark_spacing,
+          watermark_size: site.watermark_size,
+          watermark_pattern: site.watermark_pattern
+        });
+      }
+
+      const fd = new FormData();
+      fd.append('name', form.name);
+      fd.append('description', form.description);
+      fd.append('price', form.price);
+      fd.append('stock', form.stock);
+      fd.append('cost_price', form.cost_price);
+      fd.append('custom_code', customCode);
+      fd.append('add_watermark', form.add_watermark ? '1' : '0');
+      if (editId) {
+        fd.append('keep_images', JSON.stringify(form.existingImages));
+      }
+      uploadFiles.forEach(file => fd.append('images', file));
+
       if (editId) {
         await api.products.update(editId, fd);
-        setMsg('商品更新成功');
+        setMsg(form.add_watermark && form.images.length ? '商品更新成功（已加水印）' : '商品更新成功');
       } else {
         await api.products.create(fd);
-        setMsg('商品上架成功');
+        setMsg(form.add_watermark && form.images.length ? '商品上架成功（已加水印）' : '商品上架成功');
       }
       setShowForm(false);
       load();
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const removeExistingImage = (url) => {
@@ -204,7 +224,9 @@ export default function AdminProducts() {
                   />
                   添加水印
                 </label>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>勾选后，上传图片会自动叠加网站管理里设置的默认水印文字。</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  勾选后，本次新上传的图片会叠加「网站管理」里的水印文字（仅对新图生效，已有图片不会改动）。
+                </div>
               </div>
               {editId && form.existingImages.length > 0 && (
                 <div className="form-group">
@@ -224,7 +246,9 @@ export default function AdminProducts() {
                 <label>{editId ? '添加更多图片' : '商品图片（可多选）'}</label>
                 <input type="file" accept="image/*" multiple onChange={e => setForm({ ...form, images: Array.from(e.target.files) })} />
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>{editId ? '保存' : '上架'}</button>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submitting}>
+                {submitting ? '处理中…' : (editId ? '保存' : '上架')}
+              </button>
             </form>
           </div>
         </div>
