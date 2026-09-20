@@ -1,0 +1,2 @@
+# Local Wrangler secrets (copy to .dev.vars)
+JWT_SECRET=change-me-to-a-long-random-string

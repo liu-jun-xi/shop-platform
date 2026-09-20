@@ -1,0 +1,14 @@
+﻿node_modules/
+server/data/
+server/uploads/
+server/backup-temp/
+client/dist/
+.DS_Store
+*.log
+.env
+.dev.vars
+.wrangler/
+dist/
+上传清单.txt
+*.db
+*.db-*

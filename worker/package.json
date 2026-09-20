@@ -1,0 +1,11 @@
+{
+  "name": "shop-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.7.2",
+    "jose": "^5.9.6"
+  }
+}
