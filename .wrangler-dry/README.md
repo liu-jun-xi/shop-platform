@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "shop-platform" generated at 2026-09-20T06:49:04.906Z.
