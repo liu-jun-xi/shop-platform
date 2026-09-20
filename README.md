@@ -1,17 +1,17 @@
-# 网店平台 · Cloudflare Workers 版
+# ???? � Cloudflare Workers ?
 
-React 前台 + Cloudflare **Workers**（Hono）+ **D1**（结构化数据）+ 双 **R2** 桶（商品图 / 用户附件）。
+React ?? + Cloudflare **Workers**?Hono?+ **D1**???????+ ? **R2** ????? / ??????
 
-> 原 Express + SQLite 仍保留在 `server/`，可用 `npm run dev:legacy` 跑旧版。
+> ? Express + SQLite ???? `server/`??? `npm run dev:legacy` ????
 
-仓库地址https://github.com/liu-jun-xi/shop-platform
+????https://github.com/liu-jun-xi/shop-platform
 
 ---
 
 
-## 自动创建 D1 / R2
+## ???? D1 / R2
 
-不用手动在控制台点创建。本机执行：
+?????????????????
 
 ```bash
 npm run install:all
@@ -19,54 +19,63 @@ npx wrangler login
 npm run cf:one-click
 ```
 
-脚本会：
-1. `wrangler d1 create shop-db` 并写入 `database_id`
+????
+1. `wrangler d1 create shop-db` ??? `database_id`
 2. `wrangler r2 bucket create shop-products` / `shop-users`
-3. 迁移 D1
-4. `wrangler deploy` 绑定资源 + 设置 JWT_SECRET
+3. ?? D1
+4. `wrangler deploy` ???? + ?? JWT_SECRET
 
-若资源已存在会自动跳过创建。
+??????????????
 
 
-## 一键部署到 Cloudflare
+## ????? Cloudflare
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/liu-jun-xi/shop-platform)
 
-1. 点击上方按钮，用 Cloudflare 账号授权并部署本仓库
-2. 若未自动创建，请在 Cloudflare 控制台准备：
-   - D1：`shop-db`
-   - R2：`shop-products`、`shop-users`
-3. 把 [`wrangler.toml`](wrangler.toml) 里的 `database_id` 换成真实 D1 ID
-4. 设置密钥并迁移、部署：
+1. ???????? Cloudflare ??????????
+2. ????????? Cloudflare ??????
+   - D1?`shop-db`
+   - R2?`shop-products`?`shop-users`
+3. ? [`wrangler.toml`](wrangler.toml) ?? `database_id` ???? D1 ID
+4. ???????????
 
 ```bash
 npx wrangler secret put JWT_SECRET
+npx wrangler secret put STRIPE_SECRET_KEY
+npx wrangler secret put STRIPE_WEBHOOK_SECRET
 npm run db:migrate
 npm run cf:deploy
 ```
 
-默认管理员：**admin** / **123456**（上线后请立刻修改）。
+??????**admin** / **123456**???????????
+
+### Stripe ????
+
+- ?????????? **?? (HKD / HK$)**
+- ??????? / ?????????? Stripe Checkout??????
+- **????**????????????????? **1:1 ????**?????? Stripe ???
+- Webhook?`https://<your-worker>/api/stripe/webhook`??????? `checkout.session.completed`????? `checkout.session.expired`?
 
 ---
 
-## 架构
+## ??
 
-| 组件 | 用途 |
+| ?? | ?? |
 |------|------|
-| Workers + Hono | `/api/*` 业务接口 |
-| D1 `DB` | 商品、用户、订单、购物车等 |
-| R2 `PRODUCTS_BUCKET` | 商品图、站点图标、公告图 |
-| R2 `USERS_BUCKET` | 退货凭证等 |
-| Workers Assets | 托管 `client/dist` SPA |
-| Cron（每小时） | 自动确认收货 |
+| Workers + Hono | `/api/*` ???? |
+| D1 `DB` | ????????????? |
+| R2 `PRODUCTS_BUCKET` | ???????????? |
+| R2 `USERS_BUCKET` | ????? |
+| Workers Assets | ?? `client/dist` SPA |
+| Cron????? | ?????? |
 
-图片 URL 仍为 `/uploads/...`，由 Worker 从对应 R2 桶读取。
+?? URL ?? `/uploads/...`?? Worker ??? R2 ????
 
 ---
 
-## 本地开发
+## ????
 
-需要 Node.js 18+，并执行过 `npx wrangler login`。
+?? Node.js 18+????? `npx wrangler login`?
 
 ```bash
 npm run install:all
@@ -74,18 +83,18 @@ npm run db:migrate:local
 npm run cf:dev
 ```
 
-或前后端分开：
+???????
 
 ```bash
-npx wrangler dev      # 默认 http://localhost:8787
-npm run dev:client    # http://localhost:5173 ，代理到 8787
+npx wrangler dev      # ?? http://localhost:8787
+npm run dev:client    # http://localhost:5173 ???? 8787
 ```
 
-将 `.dev.vars.example` 复制为 `.dev.vars` 并填写 `JWT_SECRET`。
+? `.dev.vars.example` ??? `.dev.vars` ??? `JWT_SECRET`?
 
 ---
 
-## 首次 Cloudflare 资源创建
+## ?? Cloudflare ????
 
 ```bash
 npx wrangler d1 create shop-db
@@ -93,36 +102,36 @@ npx wrangler r2 bucket create shop-products
 npx wrangler r2 bucket create shop-users
 ```
 
-把输出的 D1 `database_id` 填进 [`wrangler.toml`](wrangler.toml)。
+???? D1 `database_id` ?? [`wrangler.toml`](wrangler.toml)?
 
 ---
 
-## GitHub Actions 自动部署
+## GitHub Actions ????
 
-仓库 Settings → Secrets 添加：
+?? Settings ? Secrets ???
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-推送到 `main` / `master` 会触发 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。
+??? `main` / `master` ??? [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)?
 
 ---
 
-## 常用脚本
+## ????
 
-| 命令 | 说明 |
+| ?? | ?? |
 |------|------|
-| `npm run install:all` | 安装根 / worker / client 依赖 |
-| `npm run build` | 构建前端到 `client/dist` |
-| `npm run cf:dev` | 本地 Wrangler 开发 |
-| `npm run cf:deploy` | 构建并部署 |
-| `npm run db:migrate` | 远程 D1 迁移 |
-| `npm run db:migrate:local` | 本地 D1 迁移 |
+| `npm run install:all` | ??? / worker / client ?? |
+| `npm run build` | ????? `client/dist` |
+| `npm run cf:dev` | ?? Wrangler ?? |
+| `npm run cf:deploy` | ????? |
+| `npm run db:migrate` | ?? D1 ?? |
+| `npm run db:migrate:local` | ?? D1 ?? |
 
 ---
 
-## 说明
+## ??
 
-- Worker 不再使用 `sharp`，上传原图到 R2。
-- 备份请用后台「导出 JSON」（含 R2 文件 base64）；不支持系统 zip。
-- 生产环境务必更换 `JWT_SECRET` 与默认管理员密码。
+- Worker ???? `sharp`?????? R2?
+- ????????? JSON??? R2 ?? base64??????? zip?
+- ???????? `JWT_SECRET` ?????????

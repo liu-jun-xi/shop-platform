@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import { hk$ } from '../utils/currency';
 import ChatWidget from './ChatWidget';
 import AnnouncementModal from './AnnouncementModal';
 import MessageModal from './MessageModal';
 
 export default function Layout() {
-  const { buyer, siteSettings, unreadMessages, buyerLogout } = useAuth();
+  const { buyer, siteSettings, unreadMessages, buyerLogout, refreshBuyer } = useAuth();
   const [showMessages, setShowMessages] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [cartCount, setCartCount] = useState(0);
@@ -18,6 +19,31 @@ export default function Layout() {
     const params = new URLSearchParams(location.search);
     setKeyword(params.get('q') || '');
   }, [location.pathname, location.search]);
+
+  // Release held gift credit when Stripe Checkout is canceled (home or cart)
+  useEffect(() => {
+    if (!buyer) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('canceled') !== '1') return;
+    const checkoutId = params.get('checkout_id');
+    if (!checkoutId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await api.orders.cancelCheckout(checkoutId);
+        if (!cancelled) await refreshBuyer();
+      } catch {
+        /* hold may already be released by webhook */
+      }
+      if (!cancelled) {
+        params.delete('canceled');
+        params.delete('checkout_id');
+        const qs = params.toString();
+        navigate({ pathname: location.pathname, search: qs ? `?${qs}` : '' }, { replace: true });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [buyer, location.pathname, location.search]);
 
   useEffect(() => {
     if (buyer) {
@@ -59,7 +85,7 @@ export default function Layout() {
           <div className="nav-actions">
             {buyer ? (
               <>
-                <span className="token-badge">代币：￥{buyer.tokens?.toFixed(2) || '0.00'}</span>
+                <span className="token-badge">赠送余额：{hk$(buyer.tokens)}</span>
                 <button className="btn btn-outline btn-sm msg-badge" onClick={() => setShowMessages(true)}>
                   💬 消息
                   {unreadMessages > 0 && <span className="dot">{unreadMessages}</span>}

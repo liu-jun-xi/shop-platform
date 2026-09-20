@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { hk$ } from '../../utils/currency';
 
 export default function AdminBuyers() {
   const [buyers, setBuyers] = useState([]);
@@ -32,7 +33,7 @@ export default function AdminBuyers() {
 
   const handleTokens = async (e) => {
     e.preventDefault();
-    await act(() => api.buyers.setTokens(editTokens.id, parseFloat(editTokens.tokens)), '代币已更新');
+    await act(() => api.buyers.setTokens(editTokens.id, parseFloat(editTokens.tokens)), '赠送余额已更新');
     setEditTokens(null);
   };
 
@@ -84,7 +85,7 @@ export default function AdminBuyers() {
       <div className="card table-wrap" style={{ padding: 0 }}>
         <table>
           <thead>
-            <tr><th>ID</th><th>邮箱</th><th>代币(￥)</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+            <tr><th>ID</th><th>邮箱</th><th>赠送余额(HK$)</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
           </thead>
           <tbody>
             {buyers.length === 0 ? (
@@ -93,12 +94,12 @@ export default function AdminBuyers() {
               <tr key={b.id}>
                 <td>{b.id}</td>
                 <td>{b.email}</td>
-                <td>￥{b.tokens?.toFixed(2)}</td>
+                <td>{hk$(b.tokens)}</td>
                 <td>{b.is_muted ? <span className="status-badge status-inactive">禁言</span> : <span className="status-badge status-active">正常</span>}</td>
                 <td>{new Date(b.created_at).toLocaleString('zh-CN')}</td>
                 <td style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <button className="btn btn-outline btn-sm" onClick={() => openAccount(b.id)}>查看账户</button>
-                  <button className="btn btn-primary btn-sm" onClick={() => setEditTokens({ id: b.id, tokens: b.tokens })}>代币</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => setEditTokens({ id: b.id, tokens: b.tokens })}>赠送余额</button>
                   <button className="btn btn-warning btn-sm" onClick={() => act(() => api.buyers.resetPassword(b.id), '密码已重置')}>重置密码</button>
                   <button className="btn btn-outline btn-sm" onClick={() => act(() => api.buyers.mute(b.id, !b.is_muted), b.is_muted ? '已解除禁言' : '已禁言')}>
                     {b.is_muted ? '解除禁言' : '禁言'}
@@ -114,10 +115,10 @@ export default function AdminBuyers() {
       {editTokens && (
         <div className="modal-overlay" onClick={() => setEditTokens(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>设置代币数量</h2>
+            <h2>设置赠送余额</h2>
             <form onSubmit={handleTokens}>
               <div className="form-group">
-                <label>代币数量 (￥)</label>
+                <label>赠送余额 (HK$) — 仅管理员赠送，付款时 1:1 抵扣港币</label>
                 <input type="number" step="0.01" min="0" value={editTokens.tokens} onChange={e => setEditTokens({ ...editTokens, tokens: e.target.value })} required />
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>保存</button>
@@ -137,7 +138,7 @@ export default function AdminBuyers() {
                 <h3 style={{ fontSize: '1rem', marginBottom: 8 }}>账户信息</h3>
                 <p><strong>ID：</strong>{viewAccount.id}</p>
                 <p><strong>邮箱：</strong>{viewAccount.email}</p>
-                <p><strong>代币余额：</strong>￥{viewAccount.tokens?.toFixed(2)}</p>
+                <p><strong>赠送余额：</strong>{hk$(viewAccount.tokens)}</p>
                 <p><strong>状态：</strong>{viewAccount.is_muted ? '禁言' : '正常'}</p>
                 <p><strong>注册时间：</strong>{new Date(viewAccount.created_at).toLocaleString('zh-CN')}</p>
                 <p style={{ marginTop: 8 }}>

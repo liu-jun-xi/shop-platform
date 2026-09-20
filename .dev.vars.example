@@ -1,2 +1,6 @@
 # Local Wrangler secrets (copy to .dev.vars)
 JWT_SECRET=change-me-to-a-long-random-string
+
+# Hong Kong Stripe (optional for local pay testing)
+# STRIPE_SECRET_KEY=sk_test_...
+# STRIPE_WEBHOOK_SECRET=whsec_...

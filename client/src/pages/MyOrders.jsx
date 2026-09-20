@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { orderStatusLabel, orderStatusClass } from '../utils/orderStatus';
+import { hk$ } from '../utils/currency';
 
 export default function MyOrders() {
-  const { buyer } = useAuth();
+  const { buyer, refreshBuyer, authReady } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -19,9 +21,39 @@ export default function MyOrders() {
   const load = () => api.orders.my().then(setOrders).catch(() => {});
 
   useEffect(() => {
-    if (!buyer) { navigate('/login'); return; }
+    if (!authReady) return;
+    if (!buyer) { navigate('/login', { replace: true }); return; }
     load();
-  }, [buyer]);
+  }, [authReady, buyer]);
+
+  // Stripe success redirect — fulfill if webhook is late
+  useEffect(() => {
+    if (!authReady || !buyer) return;
+    if (searchParams.get('paid') !== '1') return;
+    const sessionId = searchParams.get('session_id');
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await api.orders.completeSession(sessionId);
+        if (!cancelled) {
+          setMsg('支付成功！订单已生成');
+          await refreshBuyer();
+          load();
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || '确认支付失败，若已扣款请稍后刷新订单');
+      } finally {
+        if (!cancelled) {
+          const next = new URLSearchParams(searchParams);
+          next.delete('paid');
+          next.delete('session_id');
+          setSearchParams(next, { replace: true });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authReady, buyer, searchParams]);
 
   const handleConfirm = async (id) => {
     if (!confirm('确认已收到货物？')) return;
@@ -60,6 +92,7 @@ export default function MyOrders() {
     } catch (err) { setError(err.message); }
   };
 
+  if (!authReady) return <div className="empty-state">加载中...</div>;
   if (!buyer) return null;
 
   return (
@@ -90,7 +123,7 @@ export default function MyOrders() {
                 <div>
                   <strong>{o.product_name}</strong>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 4 }}>
-                    数量 {o.quantity || 1} · ￥{o.total_price.toFixed(2)}
+                    数量 {o.quantity || 1} · {hk$(o.total_price)}
                   </div>
                 </div>
                 <div style={{ fontSize: '0.875rem' }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { orderStatusLabel, orderStatusClass } from '../../utils/orderStatus';
+import { hk$ } from '../../utils/currency';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -26,16 +27,16 @@ export default function AdminOrders() {
   };
 
   const handleCancel = async (id) => {
-    if (!confirm('确定取消订单？代币将退回买家账户，库存将恢复。')) return;
+    if (!confirm('确定取消订单？赠送余额与 Stripe 付款将退回买家，库存将恢复。')) return;
     try {
       await api.orders.cancel(id);
-      setMsg('订单已取消，代币已退回');
+      setMsg('订单已取消，款项已退回');
       load();
     } catch (err) { alert(err.message); }
   };
 
   const handleApproveReturn = async (id) => {
-    if (!confirm('同意退货？代币将退回买家，库存将恢复。')) return;
+    if (!confirm('同意退货？赠送余额与 Stripe 付款将退回买家，库存将恢复。')) return;
     try {
       await api.orders.approveReturn(id);
       setMsg('已同意退货');
@@ -84,7 +85,7 @@ export default function AdminOrders() {
                 <td>{o.product_name}</td>
                 <td>{o.quantity || 1}</td>
                 <td>{o.buyer_email}</td>
-                <td>￥{o.total_price.toFixed(2)}</td>
+                <td>{hk$(o.total_price)}</td>
                 <td><span className={`status-badge status-${orderStatusClass(o)}`}>{orderStatusLabel(o)}</span></td>
                 <td style={{ maxWidth: 200, fontSize: '0.8rem' }}>
                   {o.return_reason ? (

@@ -30,6 +30,16 @@ crons = ["0 * * * *"]
 [vars]
 ENVIRONMENT = "production"
 
+# Secrets (set via wrangler secret put):
+#   JWT_SECRET
+#   STRIPE_SECRET_KEY        — Hong Kong Stripe sk_live_… / sk_test_…
+#   STRIPE_WEBHOOK_SECRET    — whsec_… from Stripe Dashboard webhook
+#
+# Webhook endpoint: https://<your-worker>/api/stripe/webhook
+# Event: checkout.session.completed
+#
 # After first deploy:
 #   npx wrangler secret put JWT_SECRET
+#   npx wrangler secret put STRIPE_SECRET_KEY
+#   npx wrangler secret put STRIPE_WEBHOOK_SECRET
 #   npm run db:migrate

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api';
 
 function money(v) {
-  return `￥${Number(v || 0).toFixed(2)}`;
+  return `HK$${Number(v || 0).toFixed(2)}`;
 }
 
 export default function AdminProfit() {

@@ -13,6 +13,7 @@ import reviews from './routes/reviews.js';
 import messages from './routes/messages.js';
 import site from './routes/site.js';
 import categories from './routes/categories.js';
+import stripeWebhook from './routes/stripeWebhook.js';
 
 const app = new Hono();
 
@@ -37,6 +38,7 @@ app.route('/api/reviews', reviews);
 app.route('/api/messages', messages);
 app.route('/api/site', site);
 app.route('/api/categories', categories);
+app.route('/api/stripe', stripeWebhook);
 
 app.get('/uploads/*', async (c) => {
   const path = c.req.path.replace(/^\/uploads\//, '');

@@ -3,9 +3,15 @@ import { api } from '../api';
 
 const AuthContext = createContext(null);
 
+function isAuthError(err) {
+  const msg = String(err?.message || '');
+  return msg.includes('401') || /未登录|登录已过期|登录已失效|请先登录|token|授权|无权/i.test(msg);
+}
+
 export function AuthProvider({ children }) {
   const [buyer, setBuyer] = useState(null);
   const [admin, setAdmin] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [siteSettings, setSiteSettings] = useState({
     site_name: '我的网店',
     site_icon: '',
@@ -39,9 +45,12 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.buyers.me();
       setBuyer(data);
-    } catch {
-      localStorage.removeItem('buyerToken');
-      setBuyer(null);
+    } catch (err) {
+      // Only clear session on real auth failure — not transient network/5xx
+      if (isAuthError(err)) {
+        localStorage.removeItem('buyerToken');
+        setBuyer(null);
+      }
     }
   }, []);
 
@@ -51,9 +60,11 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.admin.me();
       setAdmin(data);
-    } catch {
-      localStorage.removeItem('adminToken');
-      setAdmin(null);
+    } catch (err) {
+      if (isAuthError(err)) {
+        localStorage.removeItem('adminToken');
+        setAdmin(null);
+      }
     }
   }, []);
 
@@ -67,8 +78,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     loadSite();
-    refreshBuyer();
-    refreshAdmin();
+    (async () => {
+      await Promise.all([refreshBuyer(), refreshAdmin()]);
+      setAuthReady(true);
+    })();
   }, [loadSite, refreshBuyer, refreshAdmin]);
 
   useEffect(() => {
@@ -113,7 +126,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      buyer, admin, siteSettings, setSiteSettings, unreadMessages, setUnreadMessages,
+      buyer, admin, authReady, siteSettings, setSiteSettings, unreadMessages, setUnreadMessages,
       buyerLogin, buyerRegister, buyerLogout, adminLogin, adminLogout,
       refreshBuyer, refreshAdmin, loadSite, checkUnread
     }}>

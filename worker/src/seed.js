@@ -42,7 +42,7 @@ export async function ensureSeed(db) {
   if ((productCount?.c || 0) === 0) {
     const samples = [
       ['示例商品 A', '这是一个示例商品，管理员可在后台编辑或删除。', 99.0],
-      ['示例商品 B', '支持代币购买，管理员可设置买家代币余额。', 199.0],
+      ['示例商品 B', 'Supports gift-credit offset; admin can grant HKD gift balance.', 199.0],
       ['示例商品 C', '响应式设计，手机电脑均可正常使用。', 49.9]
     ];
     for (const [name, description, price] of samples) {
@@ -86,7 +86,7 @@ export async function resetAllData(db) {
 
   const samples = [
     ['示例商品 A', '这是一个示例商品，管理员可在后台编辑或删除。', 99.0],
-    ['示例商品 B', '支持代币购买，管理员可设置买家代币余额。', 199.0],
+    ['示例商品 B', 'Supports gift-credit offset; admin can grant HKD gift balance.', 199.0],
     ['示例商品 C', '响应式设计，手机电脑均可正常使用。', 49.9]
   ];
   for (const [name, description, price] of samples) {

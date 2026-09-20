@@ -138,8 +138,7 @@ admin.get('/backup/json', adminAuth, async (c) => {
 
 admin.get('/backup/images', adminAuth, async (c) => {
   return c.json({
-    message: 'Cloudflare 部署请使用「导出 JSON」（已含 R2 图片 base64）。系统 zip 备份在 Worker 上不可用。',
-    tip: 'Use GET /api/admin/backup/json'
+    error: '已取消图片备份。请使用「导出 JSON」备份买家、订单与利润（不含商品图）。'
   }, 501);
 });
 
@@ -172,7 +171,7 @@ admin.post('/restore-file', adminAuth, async (c) => {
 
 admin.post('/restore-images', adminAuth, async (c) => {
   return c.json({
-    error: 'Worker 环境请使用含 upload_files 的 JSON 备份恢复图片，不再支持 zip 解压。'
+    error: '已取消图片恢复。业务 JSON 备份不含商品图，现有商品与图片不会被覆盖。'
   }, 501);
 });
 

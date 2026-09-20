@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { applyWatermarkToFiles } from '../../utils/watermark';
+import { hk$ } from '../../utils/currency';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -173,7 +174,7 @@ export default function AdminProducts() {
                   ) : '📦'}
                 </td>
                 <td>{p.name}</td>
-                <td>￥{p.price.toFixed(2)}</td>
+                <td>{hk$(p.price)}</td>
                 <td>
                   <span className={`stock-badge ${(p.stock ?? 0) <= 0 ? 'stock-out' : (p.stock ?? 0) <= 5 ? 'stock-low' : 'stock-ok'}`}>
                     {p.stock ?? 0}
@@ -216,8 +217,8 @@ export default function AdminProducts() {
               </div>
               <div className="form-group"><label>名称</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
               <div className="form-group"><label>描述</label><textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-              <div className="form-group"><label>价格 (￥)</label><input type="number" step="0.01" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} required /></div>
-              <div className="form-group"><label>成本价 (￥)</label><input type="number" step="0.01" min="0" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} required /></div>
+              <div className="form-group"><label>价格 (HK$)</label><input type="number" step="0.01" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} required /></div>
+              <div className="form-group"><label>成本价 (HK$)</label><input type="number" step="0.01" min="0" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} required /></div>
               <div className="form-group"><label>库存数量</label><input type="number" min="0" step="1" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} required /></div>
               <div className="form-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

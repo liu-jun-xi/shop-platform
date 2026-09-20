@@ -47,10 +47,54 @@ export default function AdminSite() {
   const handleResetSystemTime = async () => { setError(''); const fd = new FormData(); fd.append('reset_system_time', '1'); try { const settings = await api.site.update(fd); setForm(f => ({ ...f, system_datetime: toDatetimeLocalValue(settings.system_time) })); setMsg('系统时间已恢复为真实时间'); } catch (err) { setError(err.message); } };
   const handleReset = async (e) => { e.preventDefault(); setError(''); try { await api.admin.resetData(resetConfirm); adminLogout(); navigate('/admin/login'); } catch (err) { setError(err.message); } };
 
-  const handleBackupJson = async () => { setError(''); setMsg(''); openProgress('正在导出 JSON', '准备读取数据库数据'); try { setProgress(20, '正在生成备份内容'); const data = await api.admin.backupJson(); setProgress(70, '正在写出 JSON 文件'); downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), `shop-backup-${new Date().toISOString().slice(0, 10)}.json`); setProgress(100, 'JSON 导出完成'); setMsg(`JSON 导出成功：${data.buyers?.length || 0} 个买家、${data.products?.length || 0} 个商品、${data.orders?.length || 0} 条订单、${data.profit_sales?.length || 0} 条盈利记录`); } catch (err) { setError(err.message); } finally { setTimeout(closeProgress, 400); } };
-  const handleBackupImages = async () => { setError(''); setMsg(''); openProgress('正在导出图片压缩包', '准备收集上传文件'); try { setProgress(25, '正在压缩图片文件'); const blob = await api.admin.backupImages(); setProgress(80, '正在写出压缩包'); downloadBlob(blob, `shop-images-${new Date().toISOString().slice(0, 10)}.zip`); setProgress(100, '图片压缩包导出完成'); setMsg('图片压缩包导出成功'); } catch (err) { setError(err.message); } finally { setTimeout(closeProgress, 400); } };
-  const handleRestore = async (e) => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; if (!confirm('恢复将覆盖当前买家、商品、订单、评价、购物车、留言、客服消息、网站设置、类目、盈利记录及图片，管理员账号保持不变，确定继续？')) return; setError(''); setMsg(''); openProgress('正在恢复 JSON', '正在读取并写入数据库'); try { setProgress(20, '正在解析备份文件'); const result = await api.admin.restoreFile(file); setProgress(100, 'JSON 恢复完成'); setMsg(result.message || '数据恢复成功'); loadSite(); } catch (err) { setError(err.message); } finally { setTimeout(closeProgress, 400); } };
-  const handleRestoreImages = async (e) => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; if (!confirm('恢复图片压缩包会覆盖现有上传图片，确定继续？')) return; setError(''); setMsg(''); openProgress('正在恢复图片压缩包', '正在解压并写回 uploads 目录'); try { setProgress(25, '正在解压图片文件'); const result = await api.admin.restoreImages(file); setProgress(100, '图片恢复完成'); setMsg(result.message || '图片恢复成功'); } catch (err) { setError(err.message === 'File too large' ? '图片压缩包太大，请先拆分后再恢复，或者提高服务器上传限制' : err.message); } finally { setTimeout(closeProgress, 400); } };
+  const handleBackupJson = async () => {
+    setError('');
+    setMsg('');
+    openProgress('正在导出业务备份', '读取买家、订单与利润数据');
+    try {
+      setProgress(20, '正在生成备份内容');
+      const data = await api.admin.backupJson();
+      setProgress(70, '正在写出 JSON 文件');
+      downloadBlob(
+        new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }),
+        `shop-business-backup-${new Date().toISOString().slice(0, 10)}.json`
+      );
+      setProgress(100, '导出完成');
+      const s = data.business_summary || {};
+      setMsg(
+        `业务备份已导出：买家 ${data.buyers?.length || 0}，订单 ${data.orders?.length || 0}（销售额 HK$${(s.order_sales_total ?? 0).toFixed(2)}），` +
+        `利润记录 ${data.profit_sales?.length || 0}（利润 HK$${(s.profit_total ?? 0).toFixed(2)}）。未包含商品与图片。`
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTimeout(closeProgress, 400);
+    }
+  };
+
+  const handleRestore = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    if (!confirm(
+      '恢复业务备份将覆盖：当前全部买家账号、订单、评价、利润记录，并清空购物车/留言/客服消息。\n\n' +
+      '不会改动：现有商品、商品图片、网站设置、管理员账号。\n\n确定继续？'
+    )) return;
+    setError('');
+    setMsg('');
+    openProgress('正在恢复业务备份', '正在读取并写入数据库');
+    try {
+      setProgress(20, '正在解析备份文件');
+      const result = await api.admin.restoreFile(file);
+      setProgress(100, '恢复完成');
+      setMsg(result.message || '业务数据恢复成功');
+      loadSite();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTimeout(closeProgress, 400);
+    }
+  };
 
   return (
     <div>
@@ -75,7 +119,7 @@ export default function AdminSite() {
           <button type="submit" className="btn btn-primary">保存设置</button>
         </form>
       </div>
-      <SiteBackupRestore onBackupJson={handleBackupJson} onBackupImages={handleBackupImages} onRestoreJson={handleRestore} onRestoreImages={handleRestoreImages} />
+      <SiteBackupRestore onBackupJson={handleBackupJson} onRestoreJson={handleRestore} />
       <div className="card" style={{ maxWidth: 600, marginBottom: 24 }}>
         <h2 style={{ marginBottom: 12 }}>重置数据</h2>
         <p style={{ color: 'var(--text-muted)' }}>重置数据将删除所有买家、订单、留言、消息和商品，恢复为初始状态（保留默认管理员 admin / 123456 和示例商品）。</p>

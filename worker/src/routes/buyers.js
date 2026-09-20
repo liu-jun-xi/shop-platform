@@ -158,9 +158,9 @@ buyers.put('/admin/:id/tokens', adminAuth, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   const { tokens } = await c.req.json();
   const n = Number(tokens);
-  if (!Number.isFinite(n) || n < 0) return c.json({ error: '无效代币数量' }, 400);
+  if (!Number.isFinite(n) || n < 0) return c.json({ error: '无效赠送余额' }, 400);
   await run(c.env.DB, 'UPDATE buyers SET tokens = ? WHERE id = ?', n, id);
-  return c.json({ message: '代币已更新' });
+  return c.json({ message: '赠送余额已更新' });
 });
 
 export default buyers;

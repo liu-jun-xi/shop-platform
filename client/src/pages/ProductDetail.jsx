@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { shippingFormFromBuyer } from '../utils/shipping';
+import { hk$ } from '../utils/currency';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -17,6 +18,7 @@ export default function ProductDetail() {
   const [orderForm, setOrderForm] = useState({ contact_email: '', contact_name: '', address: '', phone: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [paying, setPaying] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [imageSize, setImageSize] = useState(null);
 
@@ -45,6 +47,8 @@ export default function ProductDetail() {
   const inStock = (product?.stock ?? 0) > 0;
   const maxQty = product?.stock ?? 1;
   const lineTotal = (product?.price ?? 0) * quantity;
+  const gift = Math.min(buyer?.tokens || 0, lineTotal);
+  const stripeDue = Math.max(0, Math.round((lineTotal - gift) * 100) / 100);
 
   const handleComment = async (e) => {
     e.preventDefault();
@@ -70,13 +74,24 @@ export default function ProductDetail() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setPaying(true);
     try {
-      const result = await api.orders.create({ product_id: parseInt(id), quantity, ...orderForm });
-      setSuccess(`下单成功！订单识别码：${result.order_code}`);
+      const result = await api.orders.pay({
+        product_id: parseInt(id),
+        quantity,
+        ...orderForm
+      });
+      if (result.url) {
+        window.location.href = result.url;
+        return;
+      }
+      const code = result.orders?.[0]?.order_code || result.order_code;
+      setSuccess(code ? `支付成功！订单识别码：${code}` : '支付成功！');
       setShowOrder(false);
       refreshBuyer();
       loadProduct();
     } catch (err) { setError(err.message); }
+    finally { setPaying(false); }
   };
 
   if (!product) return <div className="empty-state">加载中...</div>;
@@ -111,7 +126,7 @@ export default function ProductDetail() {
         </div>
         <div style={{ flex: '1 1 280px' }}>
           <h1 style={{ fontSize: '1.5rem', marginBottom: 12 }}>{product.name}</h1>
-          <div className="product-detail-price">￥{product.price.toFixed(2)}</div>
+          <div className="product-detail-price">{hk$(product.price)}</div>
           <div className="product-stock-id-row" style={{ marginBottom: 16 }}>
             <span className={`stock-badge ${inStock ? (product.stock <= 5 ? 'stock-low' : 'stock-ok') : 'stock-out'}`}>
               {inStock ? `库存：${product.stock} 件` : '已售罄'}
@@ -127,7 +142,7 @@ export default function ProductDetail() {
                 type="number" min="1" max={maxQty} value={quantity}
                 onChange={e => setQuantity(Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)))}
               />
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>小计：￥{lineTotal.toFixed(2)}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>小计：{hk$(lineTotal)}</div>
             </div>
           )}
           <p style={{ color: 'var(--text-muted)', marginBottom: 24, whiteSpace: 'pre-wrap' }}>{product.description || '暂无描述'}</p>
@@ -196,23 +211,27 @@ export default function ProductDetail() {
       </div>
 
       {showOrder && (
-        <div className="modal-overlay" onClick={() => setShowOrder(false)}>
+        <div className="modal-overlay" onClick={() => !paying && setShowOrder(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>填写订单信息</h2>
             {error && <div className="alert alert-error">{error}</div>}
             <p style={{ marginBottom: 16, color: 'var(--text-muted)' }}>
-              商品：{product.name} · 数量：{quantity} · 合计：￥{lineTotal.toFixed(2)} · 余额：￥{buyer?.tokens?.toFixed(2)}
+              商品：{product.name} · 数量：{quantity} · 合计：{hk$(lineTotal)}
+              {gift > 0 && ` · 赠送抵扣 ${hk$(gift)}`}
+              {stripeDue > 0 ? ` · Stripe ${hk$(stripeDue)}` : ' · 可用赠送余额全额支付'}
             </p>
             <form onSubmit={handleOrder}>
               {['contact_email', 'contact_name', 'address', 'phone'].map(field => (
                 <div key={field} className="form-group">
                   <label>{({ contact_email: '联系邮箱', contact_name: '姓名', address: '收货地址', phone: '电话' })[field]}</label>
-                  <input value={orderForm[field]} onChange={e => setOrderForm({ ...orderForm, [field]: e.target.value })} required />
+                  <input value={orderForm[field]} onChange={e => setOrderForm({ ...orderForm, [field]: e.target.value })} required disabled={paying} />
                 </div>
               ))}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>确认下单</button>
-                <button type="button" className="btn btn-outline" onClick={() => setShowOrder(false)}>取消</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={paying}>
+                  {paying ? '处理中…' : stripeDue > 0 ? '前往 Stripe 支付' : '确认支付'}
+                </button>
+                <button type="button" className="btn btn-outline" onClick={() => setShowOrder(false)} disabled={paying}>取消</button>
               </div>
             </form>
           </div>

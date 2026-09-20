@@ -6,7 +6,7 @@ import { shippingFormFromBuyer } from '../utils/shipping';
 import { validateBuyerPassword } from '../utils/buyerPassword';
 
 export default function Account() {
-  const { buyer, refreshBuyer } = useAuth();
+  const { buyer, refreshBuyer, authReady } = useAuth();
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [emailForm, setEmailForm] = useState({ email: '', password: '' });
@@ -25,6 +25,7 @@ export default function Account() {
     }
   }, [buyer]);
 
+  if (!authReady) return <div className="empty-state">加载中...</div>;
   if (!buyer) return <Navigate to="/login" replace />;
 
   const handleEmail = async (e) => {

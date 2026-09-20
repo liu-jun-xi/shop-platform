@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toCssAspectRatio } from '../utils/aspectRatio';
+import { hk$ } from '../utils/currency';
 
 export default function ProductGrid({ products, emptyText = '暂无商品' }) {
   const { siteSettings } = useAuth();
@@ -30,7 +31,7 @@ export default function ProductGrid({ products, emptyText = '暂无商品' }) {
           <div className="info">
             <h3>{p.name}</h3>
             <div className="product-card-meta">
-              <div className="price">￥{p.price.toFixed(2)}</div>
+              <div className="price">{hk$(p.price)}</div>
               <div className={`stock-badge ${(p.stock ?? 0) <= 0 ? 'stock-out' : (p.stock ?? 0) <= 5 ? 'stock-low' : 'stock-ok'}`}>
                 {(p.stock ?? 0) <= 0 ? '已售罄' : `库存 ${p.stock}`}
               </div>

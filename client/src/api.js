@@ -89,6 +89,9 @@ export const api = {
   orders: {
     create: (data) => request('/orders', { method: 'POST', body: JSON.stringify(data) }),
     checkout: (data) => request('/orders/checkout', { method: 'POST', body: JSON.stringify(data) }),
+    pay: (data) => request('/orders/pay', { method: 'POST', body: JSON.stringify(data) }),
+    completeSession: (session_id) => request('/orders/complete-session', { method: 'POST', body: JSON.stringify({ session_id }) }),
+    cancelCheckout: (checkout_id) => request('/orders/cancel-checkout', { method: 'POST', body: JSON.stringify({ checkout_id }) }),
     my: () => request('/orders/my'),
     adminList: () => request('/orders/admin/all', { role: 'admin' }),
     ship: (id, shipping_number) => request(`/orders/${id}/ship`, { method: 'PUT', body: JSON.stringify({ shipping_number }), role: 'admin' }),
