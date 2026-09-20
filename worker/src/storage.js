@@ -1,19 +1,9 @@
-/** Dual R2 storage: products vs user-related uploads */
+/** Dual R2 storage: products vs user-related uploads. Images stored as WebP only. */
+import { encodeUploadAsWebp } from './imageWebp.js';
 
-function randomName(ext = '') {
+function randomName(ext = '.webp') {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   return `${id}${ext}`;
-}
-
-function extFromFile(file) {
-  const name = file?.name || '';
-  const m = name.match(/\.[a-zA-Z0-9]+$/);
-  if (m) return m[0].toLowerCase();
-  const type = file?.type || '';
-  if (type.includes('png')) return '.png';
-  if (type.includes('webp')) return '.webp';
-  if (type.includes('gif')) return '.gif';
-  return '.jpg';
 }
 
 export function urlToKey(urlPath) {
@@ -31,18 +21,29 @@ function pickBucket(env, key) {
   return { bucket: env.PRODUCTS_BUCKET, prefix: '' };
 }
 
+/**
+ * Upload file to R2 as WebP (same resolution, smaller size).
+ * PNG/JPEG are converted in memory; originals are never stored (effectively deleted).
+ */
 export async function putUpload(env, file, { folder = 'products' } = {}) {
-  const ext = extFromFile(file);
+  const ab = await file.arrayBuffer();
+  const encoded = await encodeUploadAsWebp(ab, { type: file.type, name: file.name });
+
+  const ext = encoded.keepOriginal
+    ? (String(file.name || '').match(/\.[a-zA-Z0-9]+$/)?.[0]?.toLowerCase() || '.bin')
+    : '.webp';
+
   const key = folder === 'returns'
     ? `returns/${randomName(ext)}`
     : folder === 'site'
       ? `site/${randomName(ext)}`
       : `products/${randomName(ext)}`;
+
   const { bucket } = pickBucket(env, key);
-  const ab = await file.arrayBuffer();
-  await bucket.put(key, ab, {
-    httpMetadata: { contentType: file.type || 'application/octet-stream' }
+  await bucket.put(key, encoded.bytes, {
+    httpMetadata: { contentType: encoded.contentType }
   });
+  // Original PNG/JPEG buffer is discarded here (never written to R2)
   return `/uploads/${key}`;
 }
 
@@ -71,6 +72,25 @@ export async function putBase64File(env, urlPath, base64, contentType = 'applica
   if (!key) return;
   const { bucket } = pickBucket(env, key);
   const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+  // Prefer WebP on restore when source is PNG/JPEG
+  try {
+    const encoded = await encodeUploadAsWebp(binary.buffer.slice(binary.byteOffset, binary.byteOffset + binary.byteLength), {
+      type: contentType,
+      name: key
+    });
+    if (!encoded.keepOriginal) {
+      const finalKey = /\.webp$/i.test(key)
+        ? key
+        : (key.includes('.') ? key.replace(/\.[^.]+$/, '.webp') : `${key}.webp`);
+      await bucket.put(finalKey, encoded.bytes, { httpMetadata: { contentType: 'image/webp' } });
+      if (finalKey !== key) {
+        try { await bucket.delete(key); } catch { /* ignore */ }
+      }
+      return;
+    }
+  } catch { /* fall through to raw put */ }
+
   await bucket.put(key, binary, { httpMetadata: { contentType } });
 }
 

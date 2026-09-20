@@ -13,6 +13,7 @@ run_worker_first = ["/api/*", "/uploads/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "shop-db"
+database_id = "e5ee1ef5-b26f-460c-82e2-2097c7706d2a"
 migrations_dir = "worker/migrations"
 
 [[r2_buckets]]
