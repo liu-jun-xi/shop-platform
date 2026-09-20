@@ -23,11 +23,14 @@ function pickBucket(env, key) {
 
 /**
  * Upload file to R2 as WebP (same resolution, smaller size).
- * PNG/JPEG are converted in memory; originals are never stored (effectively deleted).
+ * PNG/JPEG are converted in memory; originals are never stored.
  */
 export async function putUpload(env, file, { folder = 'products' } = {}) {
   const ab = await file.arrayBuffer();
-  const encoded = await encodeUploadAsWebp(ab, { type: file.type, name: file.name });
+  const encoded = await encodeUploadAsWebp(ab, {
+    type: file.type,
+    name: file.name
+  });
 
   const ext = encoded.keepOriginal
     ? (String(file.name || '').match(/\.[a-zA-Z0-9]+$/)?.[0]?.toLowerCase() || '.bin')
@@ -43,7 +46,6 @@ export async function putUpload(env, file, { folder = 'products' } = {}) {
   await bucket.put(key, encoded.bytes, {
     httpMetadata: { contentType: encoded.contentType }
   });
-  // Original PNG/JPEG buffer is discarded here (never written to R2)
   return `/uploads/${key}`;
 }
 
@@ -73,12 +75,11 @@ export async function putBase64File(env, urlPath, base64, contentType = 'applica
   const { bucket } = pickBucket(env, key);
   const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 
-  // Prefer WebP on restore when source is PNG/JPEG
   try {
-    const encoded = await encodeUploadAsWebp(binary.buffer.slice(binary.byteOffset, binary.byteOffset + binary.byteLength), {
-      type: contentType,
-      name: key
-    });
+    const encoded = await encodeUploadAsWebp(
+      binary.buffer.slice(binary.byteOffset, binary.byteOffset + binary.byteLength),
+      { type: contentType, name: key }
+    );
     if (!encoded.keepOriginal) {
       const finalKey = /\.webp$/i.test(key)
         ? key
@@ -89,7 +90,7 @@ export async function putBase64File(env, urlPath, base64, contentType = 'applica
       }
       return;
     }
-  } catch { /* fall through to raw put */ }
+  } catch { /* fall through */ }
 
   await bucket.put(key, binary, { httpMetadata: { contentType } });
 }

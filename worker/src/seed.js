@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = [
   ['site_name', '我的网店'],
   ['site_icon', ''],
   ['footer_text', '联系我们：example@shop.com | 版权所有 © 2026 我的网店'],
-  ['watermark_text', '我的网店'],
+  ['watermark_text', 'SHOP'],
   ['watermark_opacity', '0.20'],
   ['watermark_spacing', '0.18'],
   ['watermark_size', '0.045'],

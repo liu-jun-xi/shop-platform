@@ -50,10 +50,15 @@ export default function AdminProducts() {
     const customCode = form.custom_code.trim();
     try {
       let uploadFiles = form.images || [];
-      if (form.add_watermark && uploadFiles.length) {
+      if (form.add_watermark) {
+        if (!uploadFiles.length) {
+          setError('勾选「添加水印」后需要重新选择并上传图片（已有图片不会自动加水印）');
+          setSubmitting(false);
+          return;
+        }
         const site = await api.site.adminGet().catch(() => api.site.get());
         uploadFiles = await applyWatermarkToFiles(uploadFiles, {
-          watermark_text: site.watermark_text,
+          watermark_text: site.watermark_text || 'SHOP',
           watermark_opacity: site.watermark_opacity,
           watermark_spacing: site.watermark_spacing,
           watermark_size: site.watermark_size,
@@ -225,7 +230,7 @@ export default function AdminProducts() {
                   添加水印
                 </label>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                  勾选后，本次新上传的图片会叠加「网站管理」里的水印文字（仅对新图生效，已有图片不会改动）。
+                  勾选后，新上传图片会在浏览器叠加英文水印（网站管理里的水印文字请用英文/数字），再上传并转 WebP。
                 </div>
               </div>
               {editId && form.existingImages.length > 0 && (
