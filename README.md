@@ -9,9 +9,9 @@ React 前台 + Cloudflare **Workers**（Hono）+ **D1**（结构化数据）+ �
 ---
 
 
-## 本机真正一键部署 (D1 + R2 + deploy)
+## 自动创建 D1 / R2
 
-网页 Deploy Button 仍需手动创建 D1/R2。本机推荐：
+不用手动在控制台点创建。本机执行：
 
 ```bash
 npm run install:all
@@ -19,7 +19,15 @@ npx wrangler login
 npm run cf:one-click
 ```
 
-脚本会自动：创建 D1/R2、写入 database_id、迁移、设置 JWT_SECRET、deploy。
+脚本会：
+1. `wrangler d1 create shop-db` 并写入 `database_id`
+2. `wrangler r2 bucket create shop-products` / `shop-users`
+3. 迁移 D1
+4. `wrangler deploy` 绑定资源 + 设置 JWT_SECRET
+
+若资源已存在会自动跳过创建。
+
+
 ## 一键部署到 Cloudflare
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/liu-jun-xi/shop-platform)

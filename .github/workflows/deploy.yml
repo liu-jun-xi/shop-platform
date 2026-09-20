@@ -17,10 +17,49 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
       - name: Install dependencies
         run: npm run install:all
+
       - name: Build frontend
         run: npm run build
+
+      - name: Ensure D1 + R2 exist
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: |
+            d1 create shop-db || true
+            r2 bucket create shop-products || true
+            r2 bucket create shop-users || true
+
+      - name: Resolve D1 id and migrate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -e
+          LIST=$(npx wrangler d1 list --json 2>/dev/null || npx wrangler d1 list)
+          echo "$LIST" > /tmp/d1.json
+          ID=$(node -e "
+            const fs=require('fs');
+            const raw=fs.readFileSync('/tmp/d1.json','utf8');
+            let rows=[];
+            try { const j=JSON.parse(raw); rows=Array.isArray(j)?j:(j.databases||j.result||[]); }
+            catch { const m=[...raw.matchAll(/([0-9a-f-]{36}).*?shop-db|shop-db.*?([0-9a-f-]{36})/gi)]; if(m[0]){console.log(m[0][1]||m[0][2]); process.exit(0);} }
+            const hit=rows.find(r=>(r.name||r.database_name)==='shop-db');
+            if(!hit){console.error('shop-db not found'); process.exit(1);}
+            console.log(hit.uuid||hit.id);
+          ")
+          echo "D1 id=$ID"
+          if grep -q 'database_id' wrangler.toml; then
+            sed -i -E "s/database_id\\s*=\\s*\"[^\"]*\"/database_id = \"$ID\"/" wrangler.toml
+          else
+            sed -i -E "s/database_name = \"shop-db\"/database_name = \"shop-db\"\ndatabase_id = \"$ID\"/" wrangler.toml
+          fi
+          npx wrangler d1 migrations apply shop-db --remote
+
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
