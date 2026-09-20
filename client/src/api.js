@@ -96,6 +96,7 @@ export const api = {
     adminList: () => request('/orders/admin/all', { role: 'admin' }),
     ship: (id, shipping_number) => request(`/orders/${id}/ship`, { method: 'PUT', body: JSON.stringify({ shipping_number }), role: 'admin' }),
     cancel: (id) => request(`/orders/${id}/cancel`, { method: 'PUT', role: 'admin' }),
+    delete: (id) => request(`/orders/${id}`, { method: 'DELETE', role: 'admin' }),
     confirm: (id) => request(`/orders/${id}/confirm`, { method: 'PUT' }),
     requestReturn: (id, formData) => request(`/orders/${id}/return`, { method: 'POST', body: formData }),
     approveReturn: (id) => request(`/orders/${id}/return/approve`, { method: 'PUT', role: 'admin' }),

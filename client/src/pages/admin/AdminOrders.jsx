@@ -35,6 +35,15 @@ export default function AdminOrders() {
     } catch (err) { alert(err.message); }
   };
 
+  const handleDelete = async (o) => {
+    if (!confirm(`确定永久删除订单 ${o.order_code || o.id}？仅删除记录，不退款、不恢复库存，且无法恢复。`)) return;
+    try {
+      await api.orders.delete(o.id);
+      setMsg('订单已删除');
+      load();
+    } catch (err) { alert(err.message); }
+  };
+
   const handleApproveReturn = async (id) => {
     if (!confirm('同意退货？赠送余额与 Stripe 付款将退回买家，库存将恢复。')) return;
     try {
@@ -118,6 +127,7 @@ export default function AdminOrders() {
                       <button className="btn btn-warning btn-sm" onClick={() => { setRejectOrder(o); setRejectReason(''); }}>拒绝</button>
                     </>
                   )}
+                  <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(o)}>删除</button>
                 </td>
               </tr>
             ))}

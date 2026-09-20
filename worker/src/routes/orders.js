@@ -180,6 +180,16 @@ orders.put('/:id/cancel', adminAuth, async (c) => {
   return c.json({ message: '订单已取消并退款' });
 });
 
+/** Permanently remove an order record only — no refund, no stock restore. */
+orders.delete('/:id', adminAuth, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  const order = await one(c.env.DB, 'SELECT id FROM orders WHERE id = ?', id);
+  if (!order) return c.json({ error: '订单不存在' }, 404);
+  await run(c.env.DB, 'DELETE FROM reviews WHERE order_id = ?', id);
+  await run(c.env.DB, 'DELETE FROM orders WHERE id = ?', id);
+  return c.json({ message: '订单已删除' });
+});
+
 orders.put('/:id/confirm', buyerAuth, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   const buyer = c.get('buyer');

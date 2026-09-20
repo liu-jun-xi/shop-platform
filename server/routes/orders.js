@@ -133,6 +133,18 @@ router.put('/:id/cancel', adminAuth, (req, res) => {
   res.json({ message: '订单已取消，代币已退回买家账户' });
 });
 
+/** Permanently remove an order record only — no refund, no stock restore. */
+router.delete('/:id', adminAuth, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const order = db.prepare('SELECT id FROM orders WHERE id = ?').get(id);
+  if (!order) return res.status(404).json({ error: '订单不存在' });
+  db.transaction(() => {
+    db.prepare('DELETE FROM reviews WHERE order_id = ?').run(id);
+    db.prepare('DELETE FROM orders WHERE id = ?').run(id);
+  })();
+  res.json({ message: '订单已删除' });
+});
+
 router.put('/:id/confirm', buyerAuth, (req, res) => {
   const id = parseInt(req.params.id);
   const order = db.prepare('SELECT * FROM orders WHERE id = ? AND buyer_id = ?').get(id, req.buyer.id);
